@@ -1,0 +1,15 @@
+use EPrints;
+
+my $repo = EPrints->new->current_repository;
+exit( 0 ) unless defined $repo;
+
+my $plugin = $repo->plugin( "FeedbackWidget" );
+if( !defined $plugin )
+{
+	$repo->not_found;
+	exit( 0 );
+}
+
+$plugin->action_submit( $repo );
+
+exit( 0 );
