@@ -1,8 +1,14 @@
 (function () {
-    // Configured to point directly to the EPrints CGI endpoint
+    /**
+     * Feedback widget for pages where the current EPrints user is permitted.
+     * Checks permission with the endpoint before adding the form to the page;
+     * submissions include user, device, page, and optional screenshot details.
+     */
+    // Keep this path in sync with the endpoint configured for the EPrints ingredient.
     const ENDPOINT_URL = "/cgi/feedback";
 
-    // Build UI Container
+    // Construct the widget once; it is attached to the document only after the
+    // endpoint confirms the current user's permission.
     const container = document.createElement("div");
     container.id = "fb-widget-root";
     container.innerHTML = `
@@ -48,7 +54,8 @@
     </div>
   `;
 
-    // Pages may be static, so ask the endpoint whether the current user is permitted
+    // Pages may be static, so permission is checked by requesting the CGI endpoint.
+    // Fail closed: network errors or an unexpected response leave the widget hidden.
     async function isPermitted() {
         try {
             const response = await fetch(ENDPOINT_URL, {
@@ -110,6 +117,7 @@
             return { os, browser };
         }
 
+        // These globals are populated by EPrints on pages with a logged-in user.
         function getUserDetails() {
             return {
                 id: window.eprints_logged_in_userid ?? 0,
@@ -127,6 +135,8 @@
             return params;
         }
 
+        // Request a browser/tab capture, draw its video frame to a canvas, and
+        // return a PNG data URL. The capture stream is stopped as soon as possible.
         async function captureNativeScreen() {
             const stream = await navigator.mediaDevices.getDisplayMedia({
                 video: {
@@ -171,6 +181,7 @@
                 console.warn("Screen Capture failed, dropping to fallback.", err);
             }
 
+            // Native capture is unsupported or was cancelled; offer a file upload.
             modal.classList.remove("fb-hidden");
             captureStatus.textContent = "";
             uploadWrapper.classList.remove("fb-hidden");
@@ -194,6 +205,7 @@
             previewContainer.classList.remove("fb-hidden");
         }
 
+        // Display a status/error message in the live region beside the form.
         function displayMessage(message, type = "info") {
             messageEl.textContent = message;
             messageEl.className = `fb-message fb-message-${type}`;
@@ -220,6 +232,7 @@
 
             const { os, browser } = getBrowserAndOS();
 
+            // Match the payload shape expected by the CGI endpoint.
             const payload = {
                 eprintsUser: getUserDetails(),
                 user: {
@@ -247,6 +260,7 @@
                 const formData = new FormData();
                 formData.append("payload", JSON.stringify(payload));
 
+                // Send either the selected file or the captured PNG as an upload.
                 if (screenshotFile || screenshotBase64) {
                     const screenshot = screenshotFile || await (await fetch(screenshotBase64)).blob();
                     const filename = screenshotFile ? screenshotFile.name : "screenshot.png";

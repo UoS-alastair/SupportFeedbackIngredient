@@ -1,0 +1,16 @@
+use EPrints;
+
+my $repo = EPrints->new->current_repository;
+exit( 0 ) unless defined $repo;
+
+my $self = $repo->plugin( "SupportFeedbackIngredient" );
+if( !defined $self )
+{
+	warn "Error: SupportFeedbackIngredient plugin not found\n";
+	$repo->not_found;
+	exit( 0 );
+}
+
+$self->action_submit( $repo );
+
+exit( 0 );

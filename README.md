@@ -4,11 +4,11 @@ An EPrints ingredient that adds a floating support form for collecting feedback 
 
 ## Configuration
 
-The ingredient's default configuration is in `FeedbackWidget/cfg.d/z_feedback_widget.pl`:
+The ingredient's default configuration is in `SupportFeedbackIngredient/cfg.d/z_support_feedback_ingredient.pl`:
 
 ```perl
-# Enable the FeedbackWidget plugin
-$c->{plugins}->{"FeedbackWidget"}->{params}->{disable} = 0;
+# Enable the SupportFeedbackIngredient plugin
+$c->{plugins}->{"SupportFeedbackIngredient"}->{params}->{disable} = 0;
 
 # Feedback endpoint
 $c->{feedback_widget}->{endpoint} = '/cgi/feedback';
@@ -23,11 +23,11 @@ $c->{feedback_widget}->{allowed_userids} ||= [];
 
 | Option | Description |
 | --- | --- |
-| `plugins->{FeedbackWidget}->{params}->{disable}` | Set to `0` to enable the widget plugin. |
-| `feedback_widget->{endpoint}` | CGI endpoint used by the widget for its permission check and submissions. The default is `/cgi/feedback`. The same path is currently set as `ENDPOINT_URL` in `FeedbackWidget/static/javascript/auto/feedback.js`; if you change the endpoint, update both values. |
-| `feedback_widget->{feedback_contact_email}` | Email address that receives submissions. The default uses the repository's `$c->{adminemail}`. |
-| `feedback_widget->{allowed_roles}` | Array of EPrints roles allowed to use the widget. The default is `admin` and `local_admin`. |
-| `feedback_widget->{allowed_userids}` | Array of EPrints user IDs allowed to use the widget. The default is empty. |
+| `plugins->{SupportFeedbackIngredient}->{params}->{disable}` | Set to `0` to enable the widget plugin. |
+| `SupportFeedbackIngredient->{endpoint}` | CGI endpoint used by the widget for its permission check and submissions. The default is `/cgi/feedback`. The same path is currently set as `ENDPOINT_URL` in `SupportFeedbackIngredient/static/javascript/auto/feedback.js`; if you change the endpoint, update both values. |
+| `SupportFeedbackIngredient->{feedback_contact_email}` | Email address that receives submissions. The default uses the repository's `$c->{adminemail}`. |
+| `SupportFeedbackIngredient->{allowed_roles}` | Array of EPrints roles allowed to use the widget. The default is `admin` and `local_admin`. |
+| `SupportFeedbackIngredient->{allowed_userids}` | Array of EPrints user IDs allowed to use the widget. The default is empty. |
 
 Access is granted when the current user has **any** configured allowed role or their ID is in `allowed_userids`. For example, to allow users with the `editor` role and user IDs `123` or `456`:
 
@@ -38,7 +38,7 @@ $c->{feedback_widget}->{allowed_userids} = [ 123, 456 ];
 
 ## Customising the CSS
 
-The widget stylesheet is `FeedbackWidget/static/style/auto/feedback.css`. You can edit it directly or override its styles in a site stylesheet that loads after the widget stylesheet. Its `:root` custom properties are intended for common visual changes:
+The widget stylesheet is `SupportFeedbackIngredient/static/style/auto/feedback.css`. You can edit it directly or override its styles in a site stylesheet that loads after the widget stylesheet. Its `:root` custom properties are intended for common visual changes:
 
 ```css
 :root {

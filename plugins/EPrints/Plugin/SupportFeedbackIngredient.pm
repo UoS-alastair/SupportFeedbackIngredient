@@ -1,6 +1,7 @@
-package EPrints::Plugin::FeedbackWidget;
+package EPrints::Plugin::SupportFeedbackIngredient;
 
 use EPrints::Plugin;
+use EPrints::Time;
 use JSON;
 use File::Copy ();
 use File::Temp ();
@@ -21,11 +22,12 @@ sub new
 
 sub is_permitted
 {
-    my( $plugin, $repository ) = @_;
+    my( $self, $repository ) = @_;
 
     my $user = $repository->current_user;
     return 0 unless defined $user;
 
+    # Access is granted by any configured role or by an explicitly allowed user ID.
     foreach my $role ( @{$repository->config( "feedback_widget", "allowed_roles" ) || []} )
     {
         return 1 if $user->has_role( $role );
@@ -39,19 +41,19 @@ sub is_permitted
 
 sub action_submit
 {
-    my( $plugin, $repository ) = @_;
+    my( $self, $repository ) = @_;
 
-    # Lets the widget check permission on pages that are served as static files
+    # The widget uses GET to check access even when its host page is a static file.
     if( $repository->get_request->method eq "GET" )
     {
         _send_json_response( $repository, "200 OK", {
             status => "success",
-            permitted => $plugin->is_permitted( $repository ) ? JSON::true : JSON::false,
+            permitted => $self->is_permitted( $repository ) ? JSON::true : JSON::false,
         } );
         return;
     }
 
-    unless( $plugin->is_permitted( $repository ) )
+    unless( $self->is_permitted( $repository ) )
     {
         _send_json_response( $repository, "403 Forbidden", {
             status => "error",
@@ -90,6 +92,8 @@ sub action_submit
         return;
     }
 
+    # Submissions must contain the user, repository user, device, and page objects;
+    # required values are scalars so they can be safely included in the email.
     unless(
         ref( $data->{user} ) eq "HASH" &&
         ref( $data->{eprintsUser} ) eq "HASH" &&
@@ -150,10 +154,10 @@ sub action_submit
         push @attachments, $named;
     }
 
-    # Example: Send an internal email to repository administrators
+    # Build the email as an XML fragment because EPrints::Email::send_mail expects
+    # a DOM message; text nodes keep submitted values from becoming markup.
     my $admin_email = $repository->config( "feedback_widget", "feedback_contact_email" );
 
-    # send_mail expects the message as an XML DOM tree, not a plain string
     my $xml = $repository->xml;
     my $body = $xml->create_document_fragment;
     my $text = sub {
@@ -164,7 +168,8 @@ sub action_submit
     };
     my $query_params = $data->{page}->{queryParams};
     my @now = gmtime;
-    my $timestamp = POSIX::strftime( "%Y-%m-%d %H:%M:%S UTC", @now );
+    my $timestamp = EPrints::Time::utc_datetime();
+    # Include the reference in both email and logs so a submission can be traced.
     my $reference = sprintf( "FB-%s-%05d-%06X",
         POSIX::strftime( "%Y%m%d-%H%M%S", @now ),
         $$ % 100000,
@@ -220,7 +225,7 @@ sub action_submit
 
     unless( EPrints::Email::send_mail( %mail_params ) )
     {
-        $repository->log( "FeedbackWidget: failed to send feedback $reference from user "
+        $repository->log( "SupportFeedbackIngredient: failed to send feedback $reference from user "
             . $data->{eprintsUser}->{username} . " (" . $data->{user}->{email} . ")" );
         _send_json_response( $repository, "500 Internal Server Error", {
             status => "error",
@@ -229,7 +234,7 @@ sub action_submit
         return;
     }
 
-    $repository->log( "FeedbackWidget: sent feedback $reference from user "
+    $repository->log( "SupportFeedbackIngredient: sent feedback $reference from user "
         . $data->{eprintsUser}->{username} . " (" . $data->{user}->{email} . ") page "
         . $data->{page}->{fullUrl} );
 
@@ -243,6 +248,7 @@ sub _image_extension
 {
     my( $filepath ) = @_;
 
+    # Identify the file from its signature rather than trusting the uploaded name.
     open( my $fh, "<:raw", $filepath ) or return "png";
     read( $fh, my $head, 12 );
     close $fh;
@@ -267,3 +273,62 @@ sub _send_json_response
 }
 
 1;
+
+=head1 NAME
+
+EPrints::Plugin::SupportFeedbackIngredient - feedback widget endpoint handler
+
+=head1 DESCRIPTION
+
+Handles the feedback widget's permission checks and submissions. Authorized
+submissions are emailed to the configured feedback contact, optionally with a
+screenshot attachment.
+
+=head1 CONFIGURATION
+
+The endpoint reads these repository settings from the C<feedback_widget>
+configuration group:
+
+=over 4
+
+=item C<allowed_roles>
+
+An array of EPrints roles allowed to use the widget. A user needs any one of
+these roles or an ID listed in C<allowed_userids>.
+
+=item C<allowed_userids>
+
+An array of user IDs allowed to use the widget, in addition to users with an
+allowed role.
+
+=item C<feedback_contact_email>
+
+The recipient address for submitted feedback.
+
+=back
+
+=head1 HTTP BEHAVIOR
+
+=over 4
+
+=item GET
+
+Returns JSON with C<status> set to C<success> and a boolean C<permitted> value.
+The value reflects whether the current user is permitted to submit feedback.
+
+=item POST
+
+Requires permission and a non-empty JSON C<payload> parameter. The payload must
+be an object containing C<user>, C<eprintsUser>, C<device>, and C<page> objects.
+Required scalar fields are the submitter's C<name>, C<email>, and C<comment>;
+the repository user's C<id>, C<username>, and C<usertype>; device C<os> and
+C<browser>; and page C<fullUrl>. An optional C<screenshot> upload is attached
+to the email when present.
+
+Successful submissions return C<status> C<success> and a C<reference> used to
+identify the submission in the email and repository log. Errors return
+C<status> C<error> and a human-readable C<message>.
+
+=back
+
+=cut
