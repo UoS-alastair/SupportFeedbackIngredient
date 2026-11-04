@@ -8,17 +8,17 @@ The ingredient's default configuration is in `SupportFeedbackIngredient/cfg.d/z_
 
 ```perl
 # Enable the SupportFeedbackIngredient plugin
-$c->{plugins}->{"SupportFeedbackIngredient"}->{params}->{disable} = 0;
+$c->{plugins}->{SupportFeedbackIngredient}->{params}->{disable} = 0;
 
 # Feedback endpoint
-$c->{feedback_widget}->{endpoint} = '/cgi/feedback';
+$c->{SupportFeedbackIngredient}->{endpoint} = '/cgi/feedback';
 
 # Recipient for feedback emails
-$c->{feedback_widget}->{feedback_contact_email} = $c->{adminemail};
+$c->{SupportFeedbackIngredient}->{feedback_contact_email} = $c->{adminemail};
 
 # Users with either of these roles, or an explicitly allowed user ID, can use the widget
-$c->{feedback_widget}->{allowed_roles} ||= [ "admin", "local_admin" ];
-$c->{feedback_widget}->{allowed_userids} ||= [];
+$c->{SupportFeedbackIngredient}->{allowed_roles} ||= [ "admin", "local_admin" ];
+$c->{SupportFeedbackIngredient}->{allowed_userids} ||= [];
 ```
 
 | Option | Description |
@@ -32,8 +32,8 @@ $c->{feedback_widget}->{allowed_userids} ||= [];
 Access is granted when the current user has **any** configured allowed role or their ID is in `allowed_userids`. For example, to allow users with the `editor` role and user IDs `123` or `456`:
 
 ```perl
-$c->{feedback_widget}->{allowed_roles} = [ "editor" ];
-$c->{feedback_widget}->{allowed_userids} = [ 123, 456 ];
+$c->{SupportFeedbackIngredient}->{allowed_roles} = [ "editor" ];
+$c->{SupportFeedbackIngredient}->{allowed_userids} = [ 123, 456 ];
 ```
 
 ## Customising the CSS

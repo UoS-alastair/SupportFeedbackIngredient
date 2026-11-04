@@ -28,13 +28,13 @@ sub is_permitted
     return 0 unless defined $user;
 
     # Access is granted by any configured role or by an explicitly allowed user ID.
-    foreach my $role ( @{$repository->config( "feedback_widget", "allowed_roles" ) || []} )
+    foreach my $role ( @{$repository->config( "SupportFeedbackIngredient", "allowed_roles" ) || []} )
     {
         return 1 if $user->has_role( $role );
     }
 
     my %allowed_userids = map { $_ => 1 }
-        @{$repository->config( "feedback_widget", "allowed_userids" ) || []};
+        @{$repository->config( "SupportFeedbackIngredient", "allowed_userids" ) || []};
 
     return $allowed_userids{$user->get_id} ? 1 : 0;
 }
@@ -156,7 +156,7 @@ sub action_submit
 
     # Build the email as an XML fragment because EPrints::Email::send_mail expects
     # a DOM message; text nodes keep submitted values from becoming markup.
-    my $admin_email = $repository->config( "feedback_widget", "feedback_contact_email" );
+    my $admin_email = $repository->config( "SupportFeedbackIngredient", "feedback_contact_email" );
 
     my $xml = $repository->xml;
     my $body = $xml->create_document_fragment;
@@ -286,7 +286,7 @@ screenshot attachment.
 
 =head1 CONFIGURATION
 
-The endpoint reads these repository settings from the C<feedback_widget>
+The endpoint reads these repository settings from the C<SupportFeedbackIngredient>
 configuration group:
 
 =over 4
